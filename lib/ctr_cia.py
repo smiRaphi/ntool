@@ -210,7 +210,7 @@ class CIAReader:
                 f.seek(info['offset'])
                 name2 = '.'.join(name.split('.')[:-1]) # Remove extension so printout is short enough to be aligned
                 if info['crypt'] == 'none':
-                    hash_check.append((name2, Crypto.sha256(f, info['size']) == info['hash']))
+                    hash_check.append((name2, Cryptodome.sha256(f, info['size']) == info['hash']))
                 elif info['crypt'] == 'normal':
                     h = hashlib.sha256()
                     cipher = AES.new(info['key'], AES.MODE_CBC, iv=info['iv'])
@@ -233,11 +233,11 @@ class CIAReader:
             
             if i == 0:
                 ca_mod = bytes(pubkey.mod) # store CA modulus to verify Ticket cert and TMD cert
-                sig_check.append(('CIA Cert (CA)', Crypto.verify_rsa_sha256(CTR.root_mod[self.dev], bytes(cert_info) + bytes(pubkey), sig)))
+                sig_check.append(('CIA Cert (CA)', Cryptodome.verify_rsa_sha256(CTR.root_mod[self.dev], bytes(cert_info) + bytes(pubkey), sig)))
             elif i == 1:
-                sig_check.append(('CIA Cert (XS)', Crypto.verify_rsa_sha256(ca_mod, bytes(cert_info) + bytes(pubkey), sig)))
+                sig_check.append(('CIA Cert (XS)', Cryptodome.verify_rsa_sha256(ca_mod, bytes(cert_info) + bytes(pubkey), sig)))
             elif i == 2:
-                sig_check.append(('CIA Cert (CP)', Crypto.verify_rsa_sha256(ca_mod, bytes(cert_info) + bytes(pubkey), sig)))
+                sig_check.append(('CIA Cert (CP)', Cryptodome.verify_rsa_sha256(ca_mod, bytes(cert_info) + bytes(pubkey), sig)))
         sig_check += self.tik.verify(no_print=1) + tmd[1]
 
         f.close()

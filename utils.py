@@ -58,7 +58,7 @@ def srl_retail2dev(path, out=''):
         d = TWL.rsa_key_priv[idx]
         
         f = open('tmp.nds', 'rb')
-        sha1_calculated = Crypto.sha1(f, 0xE00)
+        sha1_calculated = Cryptodome.sha1(f, 0xE00)
         f.close()
         sha1_padded = b'\x00\x01' + b'\xff' * 105 + b'\x00' + sha1_calculated
         enc = pow(readbe(sha1_padded), readbe(d[1]), readbe(n[1])).to_bytes(0x80, 'big')

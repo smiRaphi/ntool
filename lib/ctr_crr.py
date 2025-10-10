@@ -91,7 +91,7 @@ class crrReader:
             # Body sig
             f.seek(0x340)
             crr_body = f.read(self.body_hdr.plain_offset - 0x340)
-            body_sig = Crypto.sign_rsa_sha256(CTR.crr_body_mod, CTR.crr_body_priv, crr_body)
+            body_sig = Cryptodome.sign_rsa_sha256(CTR.crr_body_mod, CTR.crr_body_priv, crr_body)
 
             f.seek(0x40)
             f.write(CTR.crr_body_mod)
@@ -101,7 +101,7 @@ class crrReader:
             if dev == 1: # Header sig
                 f.seek(0x20)
                 data = f.read(0x120)
-                hdr_sig = Crypto.sign_rsa_sha256(CTR.crr_mod[1], CTR.crr_priv[1], data)
+                hdr_sig = Cryptodome.sign_rsa_sha256(CTR.crr_mod[1], CTR.crr_priv[1], data)
                 f.seek(0x140)
                 f.write(hdr_sig)
         
@@ -121,11 +121,11 @@ class crrReader:
             hash_check.append(('CRO Hashlist', all(hashes)))
 
         sig_check = []
-        sig_check.append(('CRR Header', Crypto.verify_rsa_sha256(CTR.crr_mod[self.dev], bytes(self.hdr)[0x20:0x140], bytes(self.hdr.sig))))
+        sig_check.append(('CRR Header', Cryptodome.verify_rsa_sha256(CTR.crr_mod[self.dev], bytes(self.hdr)[0x20:0x140], bytes(self.hdr.sig))))
 
         f.seek(0x340)
         crr_body = f.read(self.body_hdr.plain_offset - 0x340)
-        sig_check.append(('CRR Body', Crypto.verify_rsa_sha256(bytes(self.hdr.crr_body_mod), crr_body, bytes(self.body_hdr.sig))))
+        sig_check.append(('CRR Body', Cryptodome.verify_rsa_sha256(bytes(self.hdr.crr_body_mod), crr_body, bytes(self.body_hdr.sig))))
 
         f.close()
         if hash_check != []:

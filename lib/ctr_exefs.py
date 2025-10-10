@@ -87,7 +87,7 @@ class ExeFSReader:
 
         for i, (name, info) in enumerate(self.files.items()):
             f.seek(info['offset'])
-            hash_check.append((name.replace('.bin', ''), Crypto.sha256(f, info['size']) == hashes[i]))
+            hash_check.append((name.replace('.bin', ''), Cryptodome.sha256(f, info['size']) == hashes[i]))
 
         f.close()
         print("Hashes:")
@@ -128,7 +128,7 @@ class ExeFSBuilder:
                 hdr.file_headers[i].offset = roundup(hdr.file_headers[i - 1].offset + hdr.file_headers[i - 1].size, block_size)
             
             f = open(os.path.join(exefs_dir, files[i]), 'rb')
-            hashes.append(Crypto.sha256(f, hdr.file_headers[i].size))
+            hashes.append(Cryptodome.sha256(f, hdr.file_headers[i].size))
             f.close()
         
         for _ in range(len(files), 10):

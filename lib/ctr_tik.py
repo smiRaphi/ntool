@@ -70,7 +70,7 @@ class tikReader:
     
     def verify(self, no_print=0): # 'no_print' parameter to facilitate CIAReader.verify()
         sig_check = []
-        sig_check.append(('Ticket', Crypto.verify_rsa_sha256(CTR.tik_mod[self.dev], bytes(self.data) + self.content_index_hdr + self.content_index_offset + self.content_index, self.sig)))
+        sig_check.append(('Ticket', Cryptodome.verify_rsa_sha256(CTR.tik_mod[self.dev], bytes(self.data) + self.content_index_hdr + self.content_index_offset + self.content_index, self.sig)))
 
         if no_print == 0:
             print('Signatures:')
@@ -202,9 +202,9 @@ class tikBuilder:
 
         # Write ticket
         if regen_sig == 'retail':
-            sig = Crypto.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(data) + content_index_hdr + content_index_offset + content_index)
+            sig = Cryptodome.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(data) + content_index_hdr + content_index_offset + content_index)
         elif regen_sig == 'dev':
-            sig = Crypto.sign_rsa_sha256(CTR.tik_mod[1], CTR.tik_priv[1], bytes(data) + content_index_hdr + content_index_offset + content_index)
+            sig = Cryptodome.sign_rsa_sha256(CTR.tik_mod[1], CTR.tik_priv[1], bytes(data) + content_index_hdr + content_index_offset + content_index)
 
         with open(f'{out}', 'wb') as f:
             f.write(int.to_bytes(0x00010004, 4, 'big'))

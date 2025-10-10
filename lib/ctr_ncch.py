@@ -287,7 +287,7 @@ class NCCHReader:
                 hashes = info['hashes']
                 f.seek(info['offset'])
                 if self.is_decrypted or info['crypt'] == 'none':
-                    hash_check.append((info['name'], Crypto.sha256(f, hashes[1]) == hashes[0]))
+                    hash_check.append((info['name'], Cryptodome.sha256(f, hashes[1]) == hashes[0]))
                 else:
                     h = hashlib.sha256()
                     counter = Counter.new(128, initial_value=readbe(info['counter']))
@@ -311,7 +311,7 @@ class NCCHReader:
                 counter = Counter.new(128, initial_value=readbe(info['counter']) + 0x500 // 16)
                 cipher = AES.new(info['key'], AES.MODE_CTR, counter=counter)
                 ncch_mod = cipher.decrypt(f.read(0x100))
-            sig_check.append(('NCCH Header', Crypto.verify_rsa_sha256(ncch_mod, bytes(self.hdr)[0x100:], bytes(self.hdr.sig))))
+            sig_check.append(('NCCH Header', Cryptodome.verify_rsa_sha256(ncch_mod, bytes(self.hdr)[0x100:], bytes(self.hdr.sig))))
 
             f.seek(0x600)
             if self.is_decrypted:
@@ -321,9 +321,9 @@ class NCCHReader:
                 counter = Counter.new(128, initial_value=readbe(info['counter']) + 0x400 // 16)
                 cipher = AES.new(info['key'], AES.MODE_CTR, counter=counter)
                 data = cipher.decrypt(f.read(0x400))
-            sig_check.append(('Exheader', Crypto.verify_rsa_sha256(CTR.accessdesc_mod[self.dev], data[0x100:], data[:0x100])))
+            sig_check.append(('Exheader', Cryptodome.verify_rsa_sha256(CTR.accessdesc_mod[self.dev], data[0x100:], data[:0x100])))
         elif self.hdr.flags[5] & 0x1: # CFA
-            sig_check.append(('NCCH Header', Crypto.verify_rsa_sha256(CTR.cfa_mod[self.dev], bytes(self.hdr)[0x100:], bytes(self.hdr.sig))))
+            sig_check.append(('NCCH Header', Cryptodome.verify_rsa_sha256(CTR.cfa_mod[self.dev], bytes(self.hdr)[0x100:], bytes(self.hdr.sig))))
 
         f.close()
         print("Hashes:")
@@ -374,7 +374,7 @@ class NCCHReader:
             f'Format version:    {self.hdr.format_ver}\n'
             f'Product code:      {self.hdr.product_code.decode("ascii")}\n'
             f'Flags:\n'
-            f' > Crypto method:  {crypto}\n'
+            f' > Cryptodome method:  {crypto}\n'
             f' > Platform:       {platform[self.hdr.flags[4]]}\n'
             f' > Form type:      {form_type[self.hdr.flags[5] & 0b11]}\n' # Lower 2 bits
             f' > Content type:   {content_type[self.hdr.flags[5] >> 2]}' # Bits 2-7
@@ -539,7 +539,7 @@ class NCCHBuilder:
 
                     # Exheader signature
                     f.seek(0x500)
-                    sig = Crypto.sign_rsa_sha256(CTR.accessdesc_mod[1], CTR.accessdesc_priv[1], f.read(0x300))
+                    sig = Cryptodome.sign_rsa_sha256(CTR.accessdesc_mod[1], CTR.accessdesc_priv[1], f.read(0x300))
                     f.seek(0x400)
                     f.write(sig)
 
@@ -557,7 +557,7 @@ class NCCHBuilder:
             hdr.exh_size = 0x400
             
             f = open(exheader, 'rb')
-            h = Crypto.sha256(f, 0x400)
+            h = Cryptodome.sha256(f, 0x400)
             hdr.exh_hash = (c_uint8 * sizeof(hdr.exh_hash))(*h)
             f.close()
             
@@ -573,7 +573,7 @@ class NCCHBuilder:
             hdr.logo_size = os.path.getsize(logo) // media_unit
             
             f = open(logo, 'rb')
-            h = Crypto.sha256(f, os.path.getsize(logo))
+            h = Cryptodome.sha256(f, os.path.getsize(logo))
             hdr.logo_hash = (c_uint8 * sizeof(hdr.logo_hash))(*h)
             f.close()
             
@@ -600,7 +600,7 @@ class NCCHBuilder:
             hdr.exefs_size = os.path.getsize(exefs) // media_unit
             
             f = open(exefs, 'rb')
-            h = Crypto.sha256(f, 0x200)
+            h = Cryptodome.sha256(f, 0x200)
             hdr.exefs_hash = (c_uint8 * sizeof(hdr.exefs_hash))(*h)
             f.close()
             hdr.exefs_hash_size = 0x200 // media_unit
@@ -623,7 +623,7 @@ class NCCHBuilder:
             hdr.romfs_size = os.path.getsize(romfs) // media_unit
             
             f = open(romfs, 'rb')
-            h = Crypto.sha256(f, romfs_hash_size)
+            h = Cryptodome.sha256(f, romfs_hash_size)
             hdr.romfs_hash = (c_uint8 * sizeof(hdr.romfs_hash))(*h)
             f.close()
             hdr.romfs_hash_size = romfs_hash_size // media_unit
@@ -637,14 +637,14 @@ class NCCHBuilder:
         # Generate header signature (if necessary)
         if regen_sig == 'retail':
             if hdr.flags[5] & 0x2: # CXI
-                sig = Crypto.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr)[0x100:])
+                sig = Cryptodome.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr)[0x100:])
                 hdr.sig = (c_uint8 * sizeof(hdr.sig))(*sig)
         elif regen_sig == 'dev':
             if hdr.flags[5] & 0x2: # CXI
-                sig = Crypto.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr)[0x100:])
+                sig = Cryptodome.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr)[0x100:])
                 hdr.sig = (c_uint8 * sizeof(hdr.sig))(*sig)
             else: # CFA
-                sig = Crypto.sign_rsa_sha256(CTR.cfa_mod[1], CTR.cfa_priv[1], bytes(hdr)[0x100:])
+                sig = Cryptodome.sign_rsa_sha256(CTR.cfa_mod[1], CTR.cfa_priv[1], bytes(hdr)[0x100:])
                 hdr.sig = (c_uint8 * sizeof(hdr.sig))(*sig)
 
         # Generate keys by using NCCHReader on dummy NCCH with only NCCH header and ExeFS header

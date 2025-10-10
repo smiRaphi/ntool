@@ -134,7 +134,7 @@ class TMDReader:
         hash_check.append(('TMD CntChunk', all(hashed)))
 
         sig_check = []
-        sig_check.append(('TMD Header', Crypto.verify_rsa_sha256(CTR.tmd_mod[self.dev], bytes(self.hdr), self.sig)))
+        sig_check.append(('TMD Header', Cryptodome.verify_rsa_sha256(CTR.tmd_mod[self.dev], bytes(self.hdr), self.sig)))
 
         if no_print == 0:
             print("Hashes:")
@@ -276,7 +276,7 @@ class TMDBuilder:
                 # Calculate hashes
                 f = open(content_files[i], 'rb')
                 tmd_chunk.content_size = os.path.getsize(content_files[i])
-                hashed = Crypto.sha256(f, tmd_chunk.content_size)
+                hashed = Cryptodome.sha256(f, tmd_chunk.content_size)
                 tmd_chunk.content_hash = (c_uint8 * sizeof(tmd_chunk.content_hash))(*hashed)
                 f.close()
 
@@ -307,9 +307,9 @@ class TMDBuilder:
         hdr.content_info_records_hash = (c_uint8 * sizeof(hdr.content_info_records_hash))(*hashed)
 
         if regen_sig == 'retail':
-            sig = Crypto.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr))
+            sig = Cryptodome.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr))
         elif regen_sig == 'dev':
-            sig = Crypto.sign_rsa_sha256(CTR.tmd_mod[1], CTR.tmd_priv[1], bytes(hdr))
+            sig = Cryptodome.sign_rsa_sha256(CTR.tmd_mod[1], CTR.tmd_priv[1], bytes(hdr))
         
         # Write TMD
         with open(f'{out}', 'wb') as f:

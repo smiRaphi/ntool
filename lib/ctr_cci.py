@@ -359,7 +359,7 @@ class CCIReader:
 
     def verify(self):
         sig_check = []
-        sig_check.append(('NCSD Header', Crypto.verify_rsa_sha256(CTR.cci_mod[self.dev], bytes(self.hdr)[0x100:], bytes(self.hdr.sig))))
+        sig_check.append(('NCSD Header', Cryptodome.verify_rsa_sha256(CTR.cci_mod[self.dev], bytes(self.hdr)[0x100:], bytes(self.hdr.sig))))
 
         mac_check = []
         if self.card_info.card_flags >> 6 == 3:
@@ -615,10 +615,10 @@ class CCIBuilder:
                              'ExtendedDevice': 3 }[media_type]
         
         if regen_sig == 'retail':
-            sig = Crypto.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr)[0x100:])
+            sig = Cryptodome.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr)[0x100:])
             hdr.sig = (c_uint8 * sizeof(hdr.sig))(*sig)
         elif regen_sig == 'dev':
-            sig = Crypto.sign_rsa_sha256(CTR.cci_mod[1], CTR.cci_priv[1], bytes(hdr)[0x100:])
+            sig = Cryptodome.sign_rsa_sha256(CTR.cci_mod[1], CTR.cci_priv[1], bytes(hdr)[0x100:])
             hdr.sig = (c_uint8 * sizeof(hdr.sig))(*sig)
 
         # Create (or modify) card info

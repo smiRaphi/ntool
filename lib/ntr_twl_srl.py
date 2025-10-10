@@ -738,7 +738,7 @@ class SRLReader:
             dec = pow(readbe(bytes(self.hdr_ext.sig)), e, n).to_bytes(0x80, 'big')
             
             f = open(self.file, 'rb')
-            sha1_calculated = Crypto.sha1(f, 0xE00)
+            sha1_calculated = Cryptodome.sha1(f, 0xE00)
             f.close()
             sig_check.append(('Header', dec[-20:] == sha1_calculated))
 
