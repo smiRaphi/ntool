@@ -1,11 +1,18 @@
 import os, sys, platform, struct, shutil, subprocess, string, warnings, hashlib, hmac, secrets, math
 
 from ctypes import *
-from Crypto.Cipher import AES
-from Crypto.Util import Counter
-from Crypto.PublicKey import RSA
-from Crypto.Hash import SHA256
-from Crypto.Signature import pkcs1_15
+try:
+	from Cryptodome.Cipher import AES
+	from Cryptodome.Util import Counter
+	from Cryptodome.PublicKey import RSA
+	from Cryptodome.Hash import SHA256
+	from Cryptodome.Signature import pkcs1_15
+except ImportError:
+	from Crypto.Cipher import AES
+	from Crypto.Util import Counter
+	from Crypto.PublicKey import RSA
+	from Crypto.Hash import SHA256
+	from Crypto.Signature import pkcs1_15
 
 resources_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources')
 

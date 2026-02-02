@@ -2,7 +2,7 @@
 
 ## Requirements
 - Python3
-- pycryptodome: `pip install pycryptodome`
+- pycryptodomex: `pip install pycryptodomex` (regular pycryptodome also works tho)
 
 ## Usage
 
