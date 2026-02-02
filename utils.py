@@ -578,9 +578,21 @@ def cci2cia(path, out='', cci_dev=0, cia_dev=0):
         if os.path.exists(i):
             os.remove(i)
 
+import zipfile
 def cdn2cia(path, out='', title_ver='', cdn_dev=0, cia_dev=0):
-    os.chdir(path)
-    name = os.path.basename(os.getcwd())
+    if os.path.isfile(path):
+        try: zipf = zipfile.ZipFile(path)
+        except: raise ValueError('Path is a file but not a ZIP file.')
+        name = os.path.splitext(os.path.basename(path))[0]
+        tmpd = os.path.abspath('tmp' + os.urandom(6).hex())
+        os.mkdir(tmpd)
+        zipf.extractall(tmpd)
+        zipf.close()
+        os.chdir(tmpd)
+    else:
+        tmpd = None
+        os.chdir(path)
+        name = os.path.basename(os.getcwd())
 
     content_files = []
     tmds = []
@@ -633,6 +645,9 @@ def cdn2cia(path, out='', title_ver='', cdn_dev=0, cia_dev=0):
     shutil.move('tmp.cia', '../tmp.cia')
     os.chdir('..')
     shutil.move('tmp.cia', out)
+
+    if tmpd:
+        shutil.rmtree(tmpd)
 
 def cia2cdn(path, out='', titlekey='', cia_dev=0):
     name = os.path.splitext(os.path.basename(path))[0]
