@@ -1,7 +1,19 @@
 from .common import *
 
+def secretgen(start:int,length:int):
+    ret = b""
+    add = start + length
+
+    for _ in range(length):
+        ret += struct.pack('>q',start)[-1:]
+        start,add = start + add,start
+
+    return ret
+
 class CTR: # For tuples: index 0 for retail, index 1 for dev
     fixed_system = 0x527CE630A9CA305F3696F3CDE954194B
+
+    secret = secretgen(-3,10)
 
     # AES keyslots
     KeyX0x2C = (0xb98e95ceca3e4d171f76a94de934c053, 0x510207515507cbb18e243dcb85e23a1d)
@@ -52,11 +64,10 @@ class CTR: # For tuples: index 0 for retail, index 1 for dev
 
     def key_scrambler(keyX, keyY):
         return rol((rol(keyX, 2, 128) ^ keyY) + 0x1FF9E9AAC5FE0408024591DC5D52768A, 87, 128).to_bytes(0x10, 'big')
-    
+
     def titlekey_gen(titleID: str, password: str):
-        secret = hextobytes('fd040105060b111c2d49')
         tid = hextobytes(titleID).lstrip(b'\x00')
-        salt = hashlib.md5(secret + tid).digest()
+        salt = hashlib.md5(CTR.secret + tid).digest()
         titlekey = hashlib.pbkdf2_hmac('sha1', password.encode(), salt, 20, 16)
         return hex(readbe(titlekey))[2:].zfill(32)
 
