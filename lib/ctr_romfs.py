@@ -29,7 +29,7 @@ class RomFSHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -51,7 +51,7 @@ class RomFSL3Hdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -69,7 +69,7 @@ class RomFSDirMetaRecord(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -87,7 +87,7 @@ class RomFSFileMetaRecord(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -200,7 +200,7 @@ class RomFSReader:
             f.seek(self.lvl3_offset)
             self.lvl3_hdr = RomFSL3Hdr(f.read(0x28))
             extract_dir(0, '')
-    
+
     def extract(self):
         output_dir = 'romfs/'
         f = open(self.file, 'rb')
@@ -218,7 +218,7 @@ class RomFSReader:
 
         f.close()
         print(f'Extracted to {output_dir}')
-    
+
     def verify(self):
         if not self.lvl3only:
             f = open(self.file, 'rb')
@@ -306,7 +306,7 @@ class RomFSBuilder:
                 hash_index = calc_path_hash(utf16name, parent_dir_off) % len(file_hash_table)
                 file_meta.hash_pointer = file_hash_table[hash_index]
                 file_hash_table[hash_index] = file_meta_off # separate chaining hash table, newly added file/dir is added as head element of linked list
-                
+
                 file_meta.name_len = len(utf16name)
                 file_meta_off += 0x20 + len(utf16name) + align(len(utf16name), 4)
                 if i != len(files) - 1:
@@ -314,7 +314,7 @@ class RomFSBuilder:
                 else:
                     file_meta.next_file_off = unused
                 file_data_off += file_meta.data_len + align(file_meta.data_len, 16)
-                
+
                 file_meta_table.append([file_meta, utf16name])
                 file_data.append([files[i], file_meta.data_len])
                 file_data_size += align(file_data_size, 16)
@@ -341,7 +341,7 @@ class RomFSBuilder:
                     dir_meta.next_dir_off = dir_meta_off
                 else:
                     dir_meta.next_dir_off = unused
-                
+
                 dir_meta_table.append([dir_meta, utf16name])
 
             for path, dir_off, dir_idx in child_dirs: # current dir's subdirs are all added to dir_meta_table before subdir's subdirs are added
@@ -401,12 +401,12 @@ class RomFSBuilder:
 
             for i in dir_hash_table:
                 f.write(int32tobytes(i))
-            
+
             for dir_meta, name in dir_meta_table:
                 f.write(bytes(dir_meta))
                 f.write(name)
                 f.write(b'\x00' * align(len(name), 4))
-            
+
             for i in file_hash_table:
                 f.write(int32tobytes(i))
 
@@ -414,7 +414,7 @@ class RomFSBuilder:
                 f.write(bytes(file_meta))
                 f.write(name)
                 f.write(b'\x00' * align(len(name), 4))
-        
+
             for file, size in file_data:
                 f.write(b'\x00' * align(f.tell(), 16))
                 g = open(file, 'rb')

@@ -19,13 +19,13 @@ class CIAHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
 class CertificateInfo(BigEndianStructure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('issuer', c_char * 0x40),
         ('key_type', c_uint32),
@@ -35,13 +35,13 @@ class CertificateInfo(BigEndianStructure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
 class RSA4096PubKey(BigEndianStructure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('mod', c_uint8 * 0x200),
         ('pub_exp', c_uint32),
@@ -50,13 +50,13 @@ class RSA4096PubKey(BigEndianStructure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
 class RSA2048PubKey(BigEndianStructure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('mod', c_uint8 * 0x100),
         ('pub_exp', c_uint32),
@@ -65,7 +65,7 @@ class RSA2048PubKey(BigEndianStructure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -76,7 +76,7 @@ class CIAReader:
 
         with open(file, 'rb') as f:
             self.hdr = CIAHdr(f.read(0x2020))
-        
+
         # Get offsets for CIA components
         curr = 0x2020
         files = {}
@@ -136,7 +136,7 @@ class CIAReader:
                 if 'key' in files[i].keys():
                     files[i]['key'] = self.tik.titlekey
                 curr += files[i]['size']
-        
+
         if self.hdr.meta_size:
             curr += align(curr, 64)
             files['meta.bin'] = {
@@ -147,7 +147,7 @@ class CIAReader:
             curr += self.hdr.meta_size
 
         self.files = files
-    
+
     def extract(self):
         f = open(self.file, 'rb')
         for name, info in self.files.items():
@@ -161,11 +161,11 @@ class CIAReader:
                 cipher = AES.new(info['key'], AES.MODE_CBC, iv=info['iv'])
                 for data in read_chunks(f, info['size']):
                     g.write(cipher.decrypt(data))
-            
+
             print(f'Extracted {name}')
             g.close()
         f.close()
-    
+
     def decrypt(self):
         f = open(self.file, 'rb')
         g = open('decrypted.cia', 'wb')
@@ -196,11 +196,11 @@ class CIAReader:
                 for data in read_chunks(f, info['size']):
                     g.write(cipher.decrypt(data))
             cur += info['size']
-        
+
         f.close()
         g.close()
         print(f'Decrypted to decrypted.cia')
-    
+
     def verify(self):
         f = open(self.file, 'rb')
         tmd = self.tmd.verify(no_print=1)
@@ -217,7 +217,7 @@ class CIAReader:
                     for data in read_chunks(f, info['size']):
                         h.update(cipher.decrypt(data))
                     hash_check.append((name2, h.digest() == info['hash']))
-            
+
         sig_check = []
         f.seek(self.files['cert.bin']['offset']) # CIA cert chain
         ca_mod = b''
@@ -230,7 +230,7 @@ class CIAReader:
                 pubkey = RSA4096PubKey(f.read(0x238))
             elif cert_info.key_type == 1:
                 pubkey = RSA2048PubKey(f.read(0x138))
-            
+
             if i == 0:
                 ca_mod = bytes(pubkey.mod) # store CA modulus to verify Ticket cert and TMD cert
                 sig_check.append(('CIA Cert (CA)', Crypto.verify_rsa_sha256(CTR.root_mod[self.dev], bytes(cert_info) + bytes(pubkey), sig)))
@@ -253,7 +253,7 @@ class CIAReader:
         for i in range(0, 0x2000 * 8):
             if self.hdr.content_index[i // 8] & (0b10000000 >> (i % 8)):
                 enabled_content_idxs.append(hex(i)[2:].zfill(4))
-        
+
         contents = ''
         for i in enabled_content_idxs:
             contents += f'   > {i}\n'
@@ -300,7 +300,7 @@ class CIABuilder:
         for i in content_files: # Enable content files present in content index
             content_index = int(i.split('.')[0], 16)
             hdr.content_index[content_index // 8] |= (0b10000000 >> (content_index % 8))
-        
+
         tik_read = tikReader(tik, dev)
         tmd_read = TMDReader(tmd, dev)
 

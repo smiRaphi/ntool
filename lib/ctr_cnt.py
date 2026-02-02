@@ -4,7 +4,7 @@ from .ctr_cia import CIAReader
 
 class cntRecord(Structure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('offset', c_uint32),
         ('offset_end', c_uint32),
@@ -12,13 +12,13 @@ class cntRecord(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
 class cntHdr(Structure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('magic', c_char * 4),
         ('unk', c_uint8 * 0xBFC),
@@ -27,7 +27,7 @@ class cntHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -40,7 +40,7 @@ class cntReader:
         if self.cuplist != '':
             with open(cuplist, 'rb') as f:
                 cupdata = f.read()
-            
+
             tidlist = []
             for i in range(0, 0x800, 8):
                 if cupdata[i:i + 8] == b'\x00' * 8:
@@ -50,7 +50,7 @@ class cntReader:
 
             with open(cnt, 'rb') as f:
                 self.cnt_hdr = cntHdr(f.read(0x1400))
-            
+
             for i in range(len(tidlist)):
                 files[f'{tidlist[i]}.cia'] = {
                     'size': self.cnt_hdr.content_records[i].offset_end - self.cnt_hdr.content_records[i].offset,
@@ -89,6 +89,6 @@ class cntReader:
                 cia = CIAReader(os.path.join(output_dir, name))
                 titleID = cia.tmd.titleID
                 os.rename(os.path.join(output_dir, name), f"{os.path.join(output_dir, titleID)}.cia")
-        
+
         f.close()
         print(f'Extracted to {output_dir}')

@@ -32,7 +32,7 @@ class CCIHdr(Structure): # 0x0 - 0x1FF
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -48,7 +48,7 @@ class CardInfo(Structure): # 0x200 - 0x2FF
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -68,7 +68,7 @@ class MasteringInfo(Structure): # 0x300 - 0x3FF
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -86,7 +86,7 @@ class InitialData(Structure): # 0x1000 - 0x11FF
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -102,7 +102,7 @@ class CardDeviceInfo(Structure): # 0x1200 - 0x3FFF, retail cards returns 'FF' he
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -170,7 +170,7 @@ class CCIReader:
                     'size': part_size
                 }
         self.files = files
-    
+
     def extract(self):
         f = open(self.file, 'rb')
         for name, info in self.files.items():
@@ -181,7 +181,7 @@ class CCIReader:
             print(f'Extracted {name}')
             g.close()
         f.close()
-    
+
     def decrypt(self):
         # Extract components
         f = open(self.file, 'rb')
@@ -208,7 +208,7 @@ class CCIReader:
                 f.write(g.read())
         else:
             f.write(b'\xFF' * 0x2E00)
-        
+
         # Use NCCHReader to decrypt NCCHs and write to new file
         sys.stdout = open(os.devnull, 'w') # Block print statements
         for name, info in self.files.items():
@@ -241,7 +241,7 @@ class CCIReader:
         if os.path.isfile('decrypted.ncch'):
             os.remove('decrypted.ncch')
         print(f'Decrypted to decrypted.3ds')
-        
+
     def encrypt(self):
         # Extract components
         f = open(self.file, 'rb')
@@ -251,7 +251,7 @@ class CCIReader:
             for data in read_chunks(f, info['size']):
                 g.write(data)
             g.close()
-        
+
         # Read original partition 0 flags from NCCH header copy
         f.seek(0x1188)
         flags = f.read(8)
@@ -329,7 +329,7 @@ class CCIReader:
                     if i in ['ncch_header.bin', 'exheader.bin', 'logo.bin', 'plain.bin', 'exefs.bin', 'romfs.bin']:
                         os.remove(i)
         sys.stdout = sys.__stdout__
-        
+
         curr = f.tell()
         padding_size = os.path.getsize(self.file) - curr
         g = open(self.file, 'rb')
@@ -344,7 +344,7 @@ class CCIReader:
         if os.path.isfile('new.ncch'):
             os.remove('new.ncch')
         print(f'Encrypted to encrypted.3ds')
-    
+
     def regen_undumpable(self):
         with open(os.path.join(resources_dir, 'test_pattern.bin'), 'rb') as f:
             test_pattern = f.read()
@@ -497,13 +497,13 @@ class CCIBuilder:
         if backup_write_wait_time != -1:
             if not (backup_write_wait_time >= 0 and backup_write_wait_time <= 255):
                 raise Exception('Invalid backup write wait time')
-        
+
         if card_device == 'NorFlash':
             if media_type == 'CARD2':
                 raise Exception('NorFlash is invalid for CARD2')
             elif media_type == 'CARD1' and save_data_size != 128 * KB and save_data_size != 512 * KB:
                 raise Exception('NorFlash can only be used with save-data sizes 128K and 512K')
-        
+
         if writable_addr != '':
            if not all([i in string.hexdigits for i in writable_addr]):
                 raise Exception('Invalid writable address')
@@ -583,7 +583,7 @@ class CCIBuilder:
                     file_size = os.path.getsize(file)
                     hdr.partitions_offset_size[i + 4:i + 8] = int32tobytes(file_size // media_unit)
                     curr += file_size
-        
+
         for i in range(0, 64, 8):
             for file in ncchs:
                 if file.startswith(f'content{i // 8}'):
@@ -596,7 +596,7 @@ class CCIBuilder:
         if save_crypto != '':
             if save_crypto == 'fw6':
                 hdr.flags[1] = 1
-        
+
         if card_device != '':
             card_device = { 'NorFlash': 1,
                             'None':     2,
@@ -605,7 +605,7 @@ class CCIBuilder:
                 hdr.flags[7] = card_device
             elif save_crypto == 'fw3' or 'fw6':
                 hdr.flags[3] = card_device
-        
+
         hdr.flags[4] = 1
 
         if media_type != '':
@@ -613,7 +613,7 @@ class CCIBuilder:
                              'CARD1':          1,
                              'CARD2':          2,
                              'ExtendedDevice': 3 }[media_type]
-        
+
         if regen_sig == 'retail':
             sig = Crypto.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr)[0x100:])
             hdr.sig = (c_uint8 * sizeof(hdr.sig))(*sig)
@@ -627,7 +627,7 @@ class CCIBuilder:
         else:
             with open(card_info, 'rb') as f:
                 cinfo = CardInfo(f.read())
-        
+
         if (hdr.ncsd_size * media_unit / 2 < save_data_size) or (save_data_size > 2047 * MB):
             raise Exception('Too large savedata size')
         if card_info == '' and writable_addr == '': # Defaults
@@ -658,12 +658,12 @@ class CCIBuilder:
         if writable_addr != '':
             writable_addr = int(writable_addr, 16)
             cinfo.writable_addr = writable_addr // media_unit
-        
+
         if card_type != '':
             cinfo.card_flags &= 0b11011111 # Clear flag
             cinfo.card_flags |= { 'S1': 0,
                                   'S2': 1 }[card_type] << 5
-        
+
         if cardbus_crypto != '':
             cinfo.card_flags &= 0b00111111 # Clear flag
             cinfo.card_flags |= { 'Secure0': 0,
@@ -677,15 +677,15 @@ class CCIBuilder:
         else:
             with open(mastering_info, 'rb') as f:
                 minfo = MasteringInfo(f.read())
-    
+
         minfo.media_size_used = used_size
 
         if title_ver != -1:
             minfo.title_ver = title_ver
-        
+
         if card_rev != -1:
             minfo.card_rev = card_rev
-        
+
         cver_tids = ['000400db00017102',
                      '000400db00017202',
                      '000400db00017302',
@@ -753,13 +753,13 @@ class CCIBuilder:
         else:
             with open(card_device_info, 'rb') as f:
                 cdinfo = CardDeviceInfo(f.read())
-        
+
         if gen_card_device_info:
             cdinfo.titlekey = (c_uint8 * sizeof(cdinfo.titlekey))(*title_key)
             with open(os.path.join(resources_dir, 'test_pattern.bin'), 'rb') as f:
                 test_pattern = f.read()
             cdinfo.test_pattern = (c_uint8 * sizeof(cdinfo.test_pattern))(*test_pattern)
-        
+
         # Write CCI
         with open(out, 'wb') as f:
             f.write(bytes(hdr))
@@ -774,6 +774,6 @@ class CCIBuilder:
                 for data in read_chunks(g, os.path.getsize(i)):
                     f.write(data)
                 g.close()
-            
+
             f.write(b'\xFF' * (hdr.ncsd_size * media_unit - used_size))
         print(f'Wrote to {out}')

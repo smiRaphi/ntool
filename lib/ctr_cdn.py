@@ -40,7 +40,7 @@ class CDNReader:
                         if name.split('.')[1] == i:
                             file = (i, info['iv'])
                             break
-                
+
                 self.titlekey = b''
                 for i in ['mypass', 'password', 'nintendo', 'redsst']:
                     titlekey = hextobytes(CTR.titlekey_gen(self.tmd_read.titleID, i))
@@ -80,7 +80,7 @@ class CDNReader:
                     g.close()
                     print(f'Decrypted {i} to {name}')
                     break
-    
+
     def verify(self):
         tmd = self.tmd_read.verify(no_print=1)
         hash_check = tmd[0]
@@ -132,7 +132,7 @@ class CDNBuilder:
         dev: 0 or 1 (if 1, use dev-crypto for ticket titlekey)
         out: path to output folder
         '''
-        
+
         content_files.sort(key=lambda h: int(h.split('.')[0], 16))
         self.content_files = content_files
         self.tmd = tmd
@@ -148,7 +148,7 @@ class CDNBuilder:
                 self.titlekey = hextobytes(titlekey)
             else: # Use titlekey generation algorithm
                 self.titlekey = hextobytes(CTR.titlekey_gen(self.tmd_read.titleID, 'mypass'))
-        
+
         if not os.path.isdir(out):
             os.makedirs(out)
 
@@ -185,7 +185,7 @@ class CDNBuilder:
                 with open(os.path.join(resources_dir, 'CA00000004.cert'), 'rb') as g:
                     f.write(g.read())
             print(f'Wrote to {os.path.join(out, name)}')
-        
+
         if self.tik != '':
             if self.tik_read.data.consoleID == 0:
                 tik_name = 'cetk'

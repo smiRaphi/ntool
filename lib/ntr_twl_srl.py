@@ -35,7 +35,7 @@ def blowfish_decrypt(key, xl, xr):
         c = key[i] ^ a
         a = b ^ f(key, c)
         b = c
-    
+
     xl = b ^ key[0]
     xr = a ^ key[1]
     return xl, xr
@@ -47,7 +47,7 @@ def f(key, v):
     d = key[18 + 768 + ((v >> 0) & 0xFF)]
 
     return mod_add((mod_add(a, b) ^ c), d)
- 
+
 def apply_keycode(key, mod, keycode): # keycode is an array of size 3
     mod //= 4
 
@@ -61,7 +61,7 @@ def apply_keycode(key, mod, keycode): # keycode is an array of size 3
         tmp1, tmp2 = blowfish_encrypt(key, tmp1, tmp2)
         key[i + 0] = tmp1
         key[i + 1] = tmp2
-    
+
     return key
 
 def init_keycode(key, gamecode, level, mod):
@@ -76,7 +76,7 @@ def init_keycode(key, gamecode, level, mod):
     keycode[2] //= 2
     if level >= 3:
         key = apply_keycode(key, mod, keycode)
-    
+
     return key
 
 def get_rsa_key_idx(hdr, hdr_ext): # The RSA key to be used depends on which bits in the titleID are set
@@ -151,7 +151,7 @@ class NTRBaseHdr(Structure): # For all games, 0x0 - 0x17F
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -171,7 +171,7 @@ class NTRExtendedHdr(Structure): # For DS games released after the DSi, 0x1BF - 
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -244,7 +244,7 @@ class TWLExtendedHdr(Structure): # For DSi enhanced or exclusive games, 0x180 - 
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -262,7 +262,7 @@ class KeyTable(Structure): # In ROM dumps, the NTR KeyTable is all '00', and the
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -281,14 +281,14 @@ class SRLReader:
                 self.hdr_ext = TWLExtendedHdr(f.read(0xE80))
                 if (self.hdr_ext.titleID_hi >> 2) & 1:
                     self.media = 'NAND'
-            
+
             if self.media == 'Game card':
                 f.seek(0x1000)
                 self.keytable = KeyTable(f.read(0x3000))
                 if self.hdr.unit_code == 2 or self.hdr.unit_code == 3:
                     f.seek(self.hdr.data6 * 0x80000)
                     self.keytable_2 = KeyTable(f.read(0x3000))
-            
+
             # Check NTR secure area
             if self.hdr.arm9_rom_offset != 0x4000:
                 self.secure_area_status = 'not present'
@@ -321,7 +321,7 @@ class SRLReader:
                     self.secure_area_status = 'encrypted'
 
         files = {}
-        
+
         files['header.bin'] = {
             'name': 'Header',
             'offset': 0,
@@ -353,14 +353,14 @@ class SRLReader:
                 'offset': self.hdr.arm9_overlay_offset,
                 'size': self.hdr.arm9_overlay_size
             }
-        
+
         if self.hdr.arm7_rom_offset:
             files['arm7.bin'] = {
                 'name': 'ARM7',
                 'offset': self.hdr.arm7_rom_offset,
                 'size': self.hdr.arm7_size
             }
-        
+
         if self.hdr.arm7_overlay_offset:
             files['arm7overlay.bin'] = {
                 'name': 'ARM7 overlay',
@@ -372,7 +372,7 @@ class SRLReader:
             with open(file, 'rb') as f:
                 f.seek(self.hdr.banner_offset)
                 ver = readle(f.read(2))
-            
+
                 calc_banner_size = False
                 banner_sizes = { 0x0001: 0x0840,
                                 0x0002: 0x0940,
@@ -389,7 +389,7 @@ class SRLReader:
                         calc_banner_size = True
                 elif self.hdr.unit_code == 2 or self.hdr.unit_code == 3:
                     size = self.hdr_ext.banner_size
-            
+
                 # Calculate banner size manually (need to do this for some NTR games)
                 if calc_banner_size:
                     f.seek(self.hdr.banner_offset)
@@ -399,13 +399,13 @@ class SRLReader:
                         size = 0x1240
                     else:
                         size = off + 0x240
-            
+
             files['banner.bin'] = {
                 'name': 'Banner',
                 'offset': self.hdr.banner_offset,
                 'size': size
             }
-        
+
         if self.media == 'Game card' and (self.hdr.unit_code == 2 or self.hdr.unit_code == 3): # Only exists for game card SRLs
             if bytes(self.keytable_2) != b'\x00' * 0x3000:
                 files['keytable2.bin'] = {
@@ -421,14 +421,14 @@ class SRLReader:
                     'offset': self.hdr_ext.arm9i_rom_offset,
                     'size': self.hdr_ext.arm9i_size
                 }
-            
+
             if self.hdr_ext.arm7i_rom_offset:
                 files['arm7i.bin'] = {
                     'name': 'ARM7i',
                     'offset': self.hdr_ext.arm7i_rom_offset,
                     'size': self.hdr_ext.arm7i_size
                 }
-        
+
         # TODO: parse FNT/FAT
         self.files = files
 
@@ -439,7 +439,7 @@ class SRLReader:
             self.modcrypted = True
             if self.hdr.data1 >> 1 == 0:
                 self.modcrypted = False
-        
+
         modcrypt = []
         if self.modcrypted:
             if (self.hdr.data1 >> 2 & 1) or ((self.hdr_ext.flags >> 7) & 1): # ModcryptKeyDebug or DeveloperApp
@@ -472,7 +472,7 @@ class SRLReader:
         # Checks
         if self.secure_area_status != 'encrypted':
             raise Exception(f'Secure area is {self.secure_area_status}, cannot be decrypted')
-        
+
         # Initialize with level 2, modulo 8 and decrypt first 8 bytes of secure area
         key_lvl2 = init_keycode(key, readle(self.hdr.game_code), 2, 8)
         p1, p0 = blowfish_decrypt(key_lvl2, readle(secure_area[4:8]), readle(secure_area[:4]))
@@ -483,7 +483,7 @@ class SRLReader:
         for i in range(0, 0x800, 8):
             p1, p0 = blowfish_decrypt(key_lvl3, readle(secure_area[i + 4:i + 8]), readle(secure_area[i:i + 4]))
             secure_area = secure_area[:i] + int32tobytes(p0) + int32tobytes(p1) + secure_area[i + 8:]
-        
+
         game_code = self.hdr.game_code.decode("ascii")
         if game_code not in sec_area_id_special.keys():
             if readle(secure_area[:4]) == magic30 and readle(secure_area[4:8]) == magic34:
@@ -502,7 +502,7 @@ class SRLReader:
         # Checks
         if self.secure_area_status != 'decrypted':
             raise Exception(f'Secure area is {self.secure_area_status}, cannot be encrypted')
-        
+
         # Set the secure area ID, which was overwritten with decrypted_id
         game_code = self.hdr.game_code.decode("ascii")
         if game_code not in sec_area_id_special.keys():
@@ -539,7 +539,7 @@ class SRLReader:
             f.seek(0x1600)
             for i in range(0, 18):
                 f.write(int32tobytes(key[i]))
-            
+
             f.seek(0x1C00)
             for i in range(18, 18 + 1024):
                 f.write(int32tobytes(key[i]))
@@ -558,14 +558,14 @@ class SRLReader:
                     f.seek(self.hdr.data6 * 0x80000 + 0x600)
                     for i in range(0, 18):
                         f.write(int32tobytes(key[i]))
-                    
+
                     f.seek(self.hdr.data6 * 0x80000 + 0xC00)
                     for i in range(18, 18 + 1024):
                         f.write(int32tobytes(key[i]))
-                    
+
                     f.seek(self.hdr.data6 * 0x80000 + 0x2000)
                     f.write(test_pattern)
-        
+
         print('Wrote to new.nds')
 
     def decrypt_modcrypt(self):
@@ -581,7 +581,7 @@ class SRLReader:
                 cipher = AES.new(i['key'], AES.MODE_CTR, counter=counter)
                 for data in read_chunks(f, i['size']):
                     g.write(TWL.aes_ctr(cipher, data))
-                
+
                 print(f'Decrypted {i["name"]}')
                 g.close()
             f.close()
@@ -613,18 +613,18 @@ class SRLReader:
             f.seek(0)
             data = f.read(0x15E)
             crc_check.append(('Header', crc16(list(data)) == self.hdr.hdr_crc))
-        
+
         hmac_check = []
         if self.hdr.unit_code == 0:
             f = open(file, 'rb')
-            
+
             if (self.hdr_ext.flags >> 5) & 1 and 'banner.bin' in self.files.keys():
                 f.seek(self.files['banner.bin']['offset'])
                 hmac_digest = hmac.new(key=TWL.hmac_key_whitelist34, digestmod=hashlib.sha1)
                 for data in read_chunks(f, self.files['banner.bin']['size']):
                     hmac_digest.update(data)
                 hmac_check.append(('Banner', hmac_digest.digest() == bytes(self.hdr_ext.banner_hmac)))
-            
+
             if (self.hdr_ext.flags >> 6) & 1 and 'arm9.bin' in self.files.keys() and 'arm7.bin' in self.files.keys():
                 hmac_digest = hmac.new(key=TWL.hmac_key_whitelist12, digestmod=hashlib.sha1)
 
@@ -636,14 +636,14 @@ class SRLReader:
                 f.seek(self.files['arm9.bin']['offset'])
                 for data in read_chunks(f, self.hdr.arm9_size):
                     hmac_digest.update(data)
-                
+
                 # ARM7
                 f.seek(self.files['arm7.bin']['offset'])
                 for data in read_chunks(f, self.files['arm7.bin']['size']):
                     hmac_digest.update(data)
 
                 hmac_check.append(('Hdr,ARM9,ARM7', hmac_digest.digest() == bytes(self.hdr_ext.hdr_arm9_arm7_hmac)))
-            
+
             if (self.hdr_ext.flags >> 6) & 1 and 'arm9overlay.bin' in self.files.keys() and self.hdr.fat_offset:
                 hmac_digest = hmac.new(key=TWL.hmac_key_whitelist12, digestmod=hashlib.sha1)
 
@@ -651,13 +651,13 @@ class SRLReader:
                 f.seek(self.files['arm9overlay.bin']['offset'])
                 for data in read_chunks(f, self.files['arm9overlay.bin']['size']):
                     hmac_digest.update(data)
-                
+
                 # FAT entries for ARM9 overlay
                 num_overlays = self.files['arm9overlay.bin']['size'] // 0x20
                 f.seek(self.hdr.fat_offset)
                 for data in read_chunks(f, num_overlays * 8):
                     hmac_digest.update(data)
-                
+
                 # Partial content of overlays
                 blocks_read = 0
                 for i in range(num_overlays):
@@ -695,7 +695,7 @@ class SRLReader:
                     for data in read_chunks(f, info['size']):
                         hmac_digest.update(data)
                     hmac_check.append((info['name'], hmac_digest.digest() == expected_digest))
-            
+
             expected_digest = bytes(self.hdr_ext.arm9_no_secure_area_hmac)
             if 'arm9.bin' in self.files.keys() and expected_digest != b'\x00' * 20:
                 f.seek(self.files['arm9.bin']['offset'] + 0x4000)
@@ -736,7 +736,7 @@ class SRLReader:
             n = readbe(TWL.rsa_key_mod[idx][self.dev])
             e = 0x10001
             dec = pow(readbe(bytes(self.hdr_ext.sig)), e, n).to_bytes(0x80, 'big')
-            
+
             f = open(self.file, 'rb')
             sha1_calculated = Crypto.sha1(f, 0xE00)
             f.close()
@@ -787,7 +787,7 @@ class SRLReader:
                 if (self.hdr_ext.region >> 4) & 1: reg += 'China, '
                 if (self.hdr_ext.region >> 5) & 1: reg += 'Korea, '
                 reg = reg[:-2]
-            
+
             def split_parental_control(b):
                 parental_ctrl = str(b & 0b00001111) # age
                 if (b >> 6) & 1:

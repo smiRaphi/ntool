@@ -22,7 +22,7 @@ class FSTEntry(BigEndianStructure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -45,7 +45,7 @@ class FSTEntryECC(BigEndianStructure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -60,7 +60,7 @@ class HMACMetaExtra(BigEndianStructure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -78,7 +78,7 @@ class HMACFileExtra(BigEndianStructure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -96,7 +96,7 @@ class RVLNANDReader:
             self.file_type = 'BootMii, with ECC'
         else:
             raise Exception('NAND has unknown file size')
-        
+
         if self.file_type == 'No ECC':
             self.page_size = page_size
         else:
@@ -139,7 +139,7 @@ class RVLNANDReader:
                     self.aes_key = f.read(16)
             else:
                 raise Exception('Could not get keys')
-        
+
         # Find superblock with largest generation number
         if self.nand_type == 'Wii':
             self.first_superblock_cluster = 0x7F00
@@ -180,7 +180,7 @@ class RVLNANDReader:
                 'entry': entry,
                 'fst': fst
             }
-        
+
         def extract_dir(fst, parent):
             name = fst.filename.decode("ascii")
             name2 = os.path.join(parent, name)
@@ -193,7 +193,7 @@ class RVLNANDReader:
                 offset = entry * 0x20 # 0x20 is the length of 1 FST entry
             else:
                 offset = entry * 0x20 + (entry // 64 * ecc_size) # Compensate for ECC every 64 FST entries
-            
+
             f.seek(self.fst_off + offset)
             if self.file_type != 'No ECC' and (entry + 1) % 64 == 0: # Every 64th FST entry is interrupted by ECC
                 fst = FSTEntryECC(f.read(0x20 + 0x40))
@@ -202,15 +202,15 @@ class RVLNANDReader:
 
             if fst.sib != 0xFFFF:
                 extract_fst(fst.sib, parent)
-            
+
             if (fst.mode & 3) == 1:
                 extract_file(fst, entry, parent)
             elif (fst.mode & 3) == 2:
                 extract_dir(fst, parent)
-        
+
         with open(nand, 'rb') as f:
             extract_fst(0, '')
-    
+
     def get_cluster_data(self, f, entry):
         f.seek(self.cluster_size * entry)
         cluster = b''.join([f.read(self.page_size)[:0x800] for page in range(8)]) # Only take 0x800 bytes for each page_size since we don't want the ECC
@@ -249,7 +249,7 @@ class RVLNANDReader:
 
         f.close()
         print(f'Extracted to {output_dir}')
-    
+
     def verify(self):
         def check_ecc_hmac(ecc_1, ecc_2, hmac_calculated):
             return ecc_1[0x1:0x15] == hmac_calculated and ecc_1[0x15:0x21] == hmac_calculated[:0xC] and ecc_2[0x1:0x9] == hmac_calculated[0xC:]
@@ -270,7 +270,7 @@ class RVLNANDReader:
                     f.seek(-(0x840 + 0x40), 1)
                     ecc_1 = f.read(0x40) # ECC data for 7th page
                     hmac_superblocks.append((i, check_ecc_hmac(ecc_1, ecc_2, hmac_digest.digest())))
-        
+
                 # HMACs for files
                 for path, info in self.files.items():
                     fat = info['cluster']
@@ -295,7 +295,7 @@ class RVLNANDReader:
                         fat = self.next_fat(f, fat)
                         i += 1
                     hmac_files.append((path, all(checks)))
-        
+
         if not (hmac_superblocks == [] and hmac_files == []):
             print("HMACs:")
         if hmac_superblocks != []:

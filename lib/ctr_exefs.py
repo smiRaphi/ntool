@@ -21,7 +21,7 @@ class ExeFSFileHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -36,7 +36,7 @@ class ExeFSHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -46,7 +46,7 @@ class ExeFSReader:
 
         with open(file, 'rb') as f:
             self.hdr = ExeFSHdr(f.read(0x200))
-        
+
         files = {}
         for i in range(10):
             file_hdr = self.hdr.file_headers[i]
@@ -62,10 +62,10 @@ class ExeFSReader:
         for name, info in self.files.items():
             f.seek(info['offset'])
             g = open(name, 'wb')
-            
+
             for data in read_chunks(f, info['size']):
                 g.write(data)
-            
+
             print(f'Extracted {name}')
             g.close()
 
@@ -113,7 +113,7 @@ class ExeFSBuilder:
                 files[0] = 'code-compressed.bin'
             else:
                 print(result[0].decode('utf-8'))
-        
+
         # Create ExeFS header
         hashes = []
         for i in range(len(files)):
@@ -126,11 +126,11 @@ class ExeFSBuilder:
                 hdr.file_headers[i].offset = 0
             else:
                 hdr.file_headers[i].offset = roundup(hdr.file_headers[i - 1].offset + hdr.file_headers[i - 1].size, block_size)
-            
+
             f = open(os.path.join(exefs_dir, files[i]), 'rb')
             hashes.append(Crypto.sha256(f, hdr.file_headers[i].size))
             f.close()
-        
+
         for _ in range(len(files), 10):
             hashes.append(b'\x00' * 0x20)
         hashes.reverse()
@@ -147,13 +147,13 @@ class ExeFSBuilder:
                 pad_size = hdr.file_headers[i].offset + 0x200 - curr
                 f.write(b'\x00' * pad_size)
                 curr += pad_size
-            
+
             for data in read_chunks(g, hdr.file_headers[i].size):
                 f.write(data)
-            
+
             curr += hdr.file_headers[i].size
             g.close()
-        
+
         f.write(b'\x00' * align(curr, block_size))
         f.close()
         if os.path.isfile(os.path.join(exefs_dir, 'code-compressed.bin')):

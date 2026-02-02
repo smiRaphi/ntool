@@ -28,10 +28,10 @@ class TMDHdr(BigEndianStructure):
         ('reserved4', c_uint16),
         ('content_info_records_hash', c_uint8 * 32),
     ]
-    
+
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -43,10 +43,10 @@ class TMDContentInfoRecord(BigEndianStructure):
         ('content_command_count', c_uint16),
         ('content_chunk_record_hash', c_uint8 * 32),
     ]
-    
+
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -60,10 +60,10 @@ class TMDContentChunkRecord(BigEndianStructure):
         ('content_size', c_uint64),
         ('content_hash', c_uint8 * 32),
     ]
-    
+
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -88,7 +88,7 @@ class TMDReader:
                     content_infos.append(TMDContentInfoRecord(content_info))
             self.content_infos_all = content_infos_all
             self.content_infos = content_infos
-            
+
             content_chunks = []
             files = {}
             for _ in range(self.hdr.content_count):
@@ -113,15 +113,15 @@ class TMDReader:
                     files[name]['iv'] = int.to_bytes(tmd_chunk.content_index, 2, 'big') + (b'\0' * 14)
             self.content_chunks = content_chunks
             self.files = files
-    
+
     def verify(self, no_print=0): # 'no_print' parameter to facilitate CIAReader.verify()
         hash_check = []
-        
+
         # Content info records hash in header
         h = hashlib.sha256()
         h.update(self.content_infos_all)
         hash_check.append(('TMD CntInfo', h.digest() == bytes(self.hdr.content_info_records_hash)))
-        
+
         # Content chunk records hash in content info records
         hashed = []
         for i in self.content_infos:
@@ -143,7 +143,7 @@ class TMDReader:
             print('Signatures:')
             for i in sig_check:
                 print(' > {0:15} {1:4}'.format(i[0] + ':', 'GOOD' if i[1] else 'FAIL'))
-        
+
         return (hash_check, sig_check)
 
     def __str__(self):
@@ -189,7 +189,7 @@ class TMDBuilder:
         if titleID != '':
            if not all([i in string.hexdigits for i in titleID]) or len(titleID) != 16:
                 raise Exception('Invalid TitleID')
-        
+
         # Defaults
         if tmd == '':
             if regen_sig == '':
@@ -218,7 +218,7 @@ class TMDBuilder:
                                 cipher = AES.new(info['key'], AES.MODE_CTR, counter=counter)
                                 exheader = cipher.decrypt(f.read(info['size']))
                         save_data_size = readbe(exheader[0x1C0:0x1C4])
-        
+
         # Create (or modify) TMD header
         if tmd == '':
             content_files.sort(key=lambda h: int(h.split('.')[0], 16)) # Sort list of content files by content index (since that is how content chunk records are ordered)
@@ -235,7 +235,7 @@ class TMDBuilder:
                 hdr = TMDHdr(f.read(0xC4))
                 content_infos_all = f.read(0x900)
                 content_chunks_all = f.read(0x30 * hdr.content_count)
-        
+
         if tmd == '' or regen_sig != '':
             hdr.issuer = b'Root-CA00000003-CP0000000b'
             if regen_sig == 'dev':
@@ -244,16 +244,16 @@ class TMDBuilder:
         if titleID != '':
             titleID_bytes = int.to_bytes((int(titleID, 16)), 8, 'big')
             hdr.titleID = (c_uint8 * sizeof(hdr.titleID))(*titleID_bytes)
-        
+
         if title_ver != -1:
             hdr.title_ver = title_ver
-        
+
         if save_data_size != '':
             hdr.save_data_size = save_data_size
-        
+
         if priv_save_data_size != '':
             hdr.priv_save_data_size = priv_save_data_size
-        
+
         if twl_flag != '':
             hdr.twl_flag = twl_flag
 
@@ -288,7 +288,7 @@ class TMDBuilder:
                 tmd_chunk.content_type &= ~1 # Reset flags
                 if crypt:
                     tmd_chunk.content_type |= 1
-                
+
                 content_chunks += bytes(tmd_chunk)
 
         # Create content info records
@@ -310,7 +310,7 @@ class TMDBuilder:
             sig = Crypto.sign_rsa_sha256(CTR.test_mod, CTR.test_priv, bytes(hdr))
         elif regen_sig == 'dev':
             sig = Crypto.sign_rsa_sha256(CTR.tmd_mod[1], CTR.tmd_priv[1], bytes(hdr))
-        
+
         # Write TMD
         with open(f'{out}', 'wb') as f:
             f.write(int.to_bytes(0x00010004, 4, 'big'))
@@ -319,5 +319,5 @@ class TMDBuilder:
             f.write(bytes(hdr))
             f.write(content_infos)
             f.write(content_chunks)
-        
+
         print(f'Wrote to {out}')

@@ -38,14 +38,14 @@ class NCCHHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
 # Returns the initial value for the AES-CTR counter
 def get_ncch_counter(hdr, component):
     counter = bytearray(b'\0' * 16)
-    
+
     if hdr.format_ver == 0 or hdr.format_ver == 2:
         section = { 'exheader.bin': 0x01,
                     'exefs.bin':    0x02,
@@ -76,7 +76,7 @@ def get_seed(titleID: bytes):
                 seed = entry[8:24]
         if seed == -1:
             raise Exception('Could not find TitleID in SEEDDB')
-    
+
     return seed
 
 class NCCHReader:
@@ -111,18 +111,18 @@ class NCCHReader:
         else:
             self.keyY = [bytes(self.hdr.sig)[:0x10], bytes(self.hdr.sig)[:0x10]]
             self.keyX = [CTR.KeyX0x2C[dev], self.keyX_2[dev]]
-            
+
             if self.uses_seed: # This will result in keyY_2 being different
                 seed = get_seed(bytes(self.hdr.programID))
-                
+
                 # Verify seed in SEEDDB
                 if hashlib.sha256(seed + self.hdr.programID).digest()[:4] != bytes(self.hdr.seed_hash):
                     raise Exception('Seed in SEEDDB failed verification')
-                
+
                 self.keyY[1] = hashlib.sha256(self.keyY[0] + seed).digest()[:16]
 
             self.normal_key = [CTR.key_scrambler(self.keyX[i], readbe(self.keyY[i])) for i in range(2)]
-    
+
         # Get component offset, size, AES-CTR key and initial value for counter, hash and size of component to calculate hash over
         # Exheader, ExeFS and RomFS are encrypted
         files = {}
@@ -143,7 +143,7 @@ class NCCHReader:
                 'counter': get_ncch_counter(self.hdr, 'exheader.bin'),
                 'hashes': (bytes(self.hdr.exh_hash), 0x400)
             }
-        
+
         if self.hdr.logo_offset:
             files['logo.bin'] = {
                 'name': 'Logo',
@@ -152,7 +152,7 @@ class NCCHReader:
                 'crypt': 'none',
                 'hashes': (bytes(self.hdr.logo_hash), self.hdr.logo_size * media_unit)
             }
-        
+
         if self.hdr.plain_size:
             files['plain.bin'] = {
                 'name': 'Plain',
@@ -160,7 +160,7 @@ class NCCHReader:
                 'offset': self.hdr.plain_offset * media_unit,
                 'crypt': 'none',
             }
-        
+
         if self.hdr.exefs_offset:
             files['exefs.bin'] = {
                 'name': 'ExeFS',
@@ -181,7 +181,7 @@ class NCCHReader:
                     exefs_file_hdr = f.read(0xA0)
                 else:
                     exefs_file_hdr = cipher.decrypt(f.read(0xA0))
-            
+
             exefs_files = [(0, 0x200, 0, 'header')] # Each tuple is (offset in ExeFS, size, normal_key index, name)
             for i in range(10):
                 file_hdr = ExeFSFileHdr(exefs_file_hdr[i * 16:(i + 1) * 16])
@@ -207,7 +207,7 @@ class NCCHReader:
                     'counter': get_ncch_counter(self.hdr, 'romfs.bin'),
                     'hashes': (bytes(self.hdr.romfs_hash), self.hdr.romfs_hash_size * media_unit)
                 }
-        
+
         self.files = files
 
     def extract(self):
@@ -232,7 +232,7 @@ class NCCHReader:
                     cipher.decrypt(b'\0' * (off % 16)) # Cipher has to be advanced manually also
                     for data in read_chunks(f, size):
                         g.write(cipher.decrypt(data))
-            
+
             print(f'Extracted {name}')
             g.close()
         f.close()
@@ -272,7 +272,7 @@ class NCCHReader:
                     for data in read_chunks(f, size):
                         g.write(cipher.decrypt(data))
             curr += info['size']
-            
+
         f.close()
         g.close()
         print(f'Decrypted to decrypted.ncch')
@@ -349,7 +349,7 @@ class NCCHReader:
             crypto = keyX_2[self.hdr.flags[3]]
             if self.uses_seed:
                 crypto += ' (KeyY seeded)'
-        
+
         platform = {
             1: 'CTR',
             2: 'SNAKE'
@@ -411,22 +411,22 @@ class NCCHBuilder:
         if product_code != '':
             if not all([i == '-' or i.isdigit() or i.isupper() for i in product_code]) or len(product_code) < 10 or len(product_code) > 16 or product_code[:3] not in ['CTR', 'KTR']:
                 raise Exception('Invalid product code')
-        
+
         if titleID != '':
            if not all([i in string.hexdigits for i in titleID]) or len(titleID) != 16:
                 raise Exception('Invalid TitleID')
-        
+
         if programID != '':
            if not all([i in string.hexdigits for i in programID]) or len(programID) != 16:
                 raise Exception('Invalid programID')
-        
+
         if seed == 1 and (not crypto.startswith('Secure')):
             raise Exception('Seed crypto can only be used with Secure crypto')
 
         # Defaults
         if ncch_header == '' and regen_sig == '':
             regen_sig = 'retail'
-        
+
         if regen_sig == 'dev':
             dev = 1
 
@@ -446,14 +446,14 @@ class NCCHBuilder:
         else:
             with open(ncch_header, 'rb') as f:
                 hdr = NCCHHdr(f.read())
-        
+
         if ncch_header == '' and programID == '': # Defaults
             programID = titleID
-        
+
         if titleID != '':
             titleID_bytes = int64tobytes(int(titleID, 16))
             hdr.titleID = (c_uint8 * sizeof(hdr.titleID))(*titleID_bytes)
-            
+
             if replace_tid == 1: # Replace TitleID in exheader
                 if exheader != '':
                     with open('exheader_mod', 'r+b') as f:
@@ -461,20 +461,20 @@ class NCCHBuilder:
                         for off in offs:
                             f.seek(off)
                             f.write(hextobytes(titleID))
-        
+
         if programID != '':
             programID_bytes = int64tobytes(int(programID, 16))
             hdr.programID = (c_uint8 * sizeof(hdr.programID))(*programID_bytes)
-        
+
         if maker_code != '':
             hdr.maker_code = maker_code.encode('ascii')
-        
+
         if ncch_type != '':
             if ncch_type == 'CXI':
                 hdr.format_ver = 2
             else:
                 hdr.format_ver = 0
-            
+
             if ncch_header != '': # Reset content type flag first if existing value already exists
                 hdr.flags[5] = 0
             if ncch_type == 'CXI' and romfs == '':
@@ -493,16 +493,16 @@ class NCCHBuilder:
                     hdr.flags[5] |= 0x10
                 elif ncch_type == 'SNAKESystemUpdate':
                     hdr.flags[5] |= 0x14
-        
+
         if product_code != '':
             hdr.product_code = product_code.encode('ascii')
-        
+
         if platform != '':
             if platform == 'CTR':
                 hdr.flags[4] = 1
             elif platform == 'SNAKE':
                 hdr.flags[4] = 2
-        
+
         if crypto != '':
             # Reset crypto flags
             hdr.flags[7] &= ~1
@@ -555,12 +555,12 @@ class NCCHBuilder:
             if regen_sig != '' or replace_tid == 1:
                 exheader = 'exheader_mod'
             hdr.exh_size = 0x400
-            
+
             f = open(exheader, 'rb')
             h = Crypto.sha256(f, 0x400)
             hdr.exh_hash = (c_uint8 * sizeof(hdr.exh_hash))(*h)
             f.close()
-            
+
             curr += os.path.getsize(exheader)
             files['exheader.bin'] = {
                 'path': exheader
@@ -568,15 +568,15 @@ class NCCHBuilder:
         if logo != '':
             curr += align(curr, 0x200)
             size_check.append(hdr.logo_size == os.path.getsize(logo) // media_unit)
-            
+
             hdr.logo_offset = curr // media_unit
             hdr.logo_size = os.path.getsize(logo) // media_unit
-            
+
             f = open(logo, 'rb')
             h = Crypto.sha256(f, os.path.getsize(logo))
             hdr.logo_hash = (c_uint8 * sizeof(hdr.logo_hash))(*h)
             f.close()
-            
+
             curr += os.path.getsize(logo)
             files['logo.bin'] = {
                 'path': logo
@@ -587,7 +587,7 @@ class NCCHBuilder:
 
             hdr.plain_offset = curr // media_unit
             hdr.plain_size = os.path.getsize(plain) // media_unit
-            
+
             curr += os.path.getsize(plain)
             files['plain.bin'] = {
                 'path': plain
@@ -595,16 +595,16 @@ class NCCHBuilder:
         if exefs != '':
             curr += align(curr, 0x200)
             size_check.append(hdr.exefs_size == os.path.getsize(exefs) // media_unit)
-            
+
             hdr.exefs_offset = curr // media_unit
             hdr.exefs_size = os.path.getsize(exefs) // media_unit
-            
+
             f = open(exefs, 'rb')
             h = Crypto.sha256(f, 0x200)
             hdr.exefs_hash = (c_uint8 * sizeof(hdr.exefs_hash))(*h)
             f.close()
             hdr.exefs_hash_size = 0x200 // media_unit
-            
+
             curr += os.path.getsize(exefs)
             files['exefs.bin'] = {
                 'path': exefs
@@ -612,7 +612,7 @@ class NCCHBuilder:
         if romfs != '':
             r = RomFSReader(romfs)
             romfs_hash_size = roundup(0x60 + r.hdr.master_hash_size, media_unit) # RomFS hash in NCCH is over RomFS header + master hash
-        
+
             size_check.append(hdr.romfs_size == os.path.getsize(romfs) // media_unit)
             if all(size_check): # RomFS offset may be 0x200 aligned ("SDK 2.x and prior" according to makerom). In order for rebuilt NCCH to match original, we don't overwrite the existing RomFS offset if all sizes in provided NCCH header match provided files
                 curr = hdr.romfs_offset * media_unit
@@ -621,19 +621,19 @@ class NCCHBuilder:
 
             hdr.romfs_offset = curr // media_unit
             hdr.romfs_size = os.path.getsize(romfs) // media_unit
-            
+
             f = open(romfs, 'rb')
             h = Crypto.sha256(f, romfs_hash_size)
             hdr.romfs_hash = (c_uint8 * sizeof(hdr.romfs_hash))(*h)
             f.close()
             hdr.romfs_hash_size = romfs_hash_size // media_unit
-            
+
             curr += os.path.getsize(romfs)
             files['romfs.bin'] = {
                 'path': romfs
             }
         hdr.ncch_size = curr // media_unit
-        
+
         # Generate header signature (if necessary)
         if regen_sig == 'retail':
             if hdr.flags[5] & 0x2: # CXI

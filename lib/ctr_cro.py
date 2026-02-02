@@ -3,7 +3,7 @@ from .keys import *
 
 class croHdr(Structure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('hdr_hash', c_uint8 * 0x20),
         ('sect0_hash', c_uint8 * 0x20),
@@ -59,7 +59,7 @@ class croHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -69,7 +69,7 @@ class croReader:
 
         with open(file, 'rb') as f:
             self.hdr = croHdr(f.read(0x138))
-    
+
     def verify(self):
         f = open(self.file, 'rb')
 

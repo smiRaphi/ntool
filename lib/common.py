@@ -81,7 +81,7 @@ class Crypto:
         h = SHA256.new(data)
         sig = x.sign(h)
         return sig
-    
+
     def verify_rsa_sha256(mod: bytes, data: bytes, sig: bytes):
         x = pkcs1_15.new(RSA.construct((readbe(mod), 0x10001)))
         h = SHA256.new(data)

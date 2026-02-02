@@ -16,7 +16,7 @@ def srl_retail2dev(path, out=''):
     name = os.path.splitext(os.path.basename(path))[0]
     if out == '':
         out = f'{name}_dev.srl'
-    
+
     srl = SRLReader(path, dev=0)
     shutil.copyfile(path, 'tmp.nds')
 
@@ -45,18 +45,18 @@ def srl_retail2dev(path, out=''):
             g.close()
         f.close()
         os.remove('decrypted.nds')
-    
+
     if srl.hdr.unit_code == 2 or srl.hdr.unit_code == 3 or (srl.hdr.unit_code == 0 and srl.hdr_ext.flags != 0): # Set DeveloperApp flag
         srl.hdr_ext.flags |= (1 << 7)
         with open('tmp.nds', 'r+b') as f:
             f.seek(0x1BF)
             f.write(int8tobytes(srl.hdr_ext.flags))
-    
+
     if not (srl.hdr.unit_code == 0 and readbe(srl.hdr_ext.sig) == 0): # Re-generate header signature
         idx = get_rsa_key_idx(srl.hdr, srl.hdr_ext)
         n = TWL.rsa_key_mod[idx]
         d = TWL.rsa_key_priv[idx]
-        
+
         f = open('tmp.nds', 'rb')
         sha1_calculated = Crypto.sha1(f, 0xE00)
         f.close()
@@ -78,7 +78,7 @@ def cia_dev2retail(path, out=''):
     name = os.path.splitext(os.path.basename(path))[0]
     if out == '':
         out = f'{name}_retail.cia'
-    
+
     cia = CIAReader(path, dev=1)
     cia.extract()
 
@@ -133,7 +133,7 @@ def cia_dev2retail(path, out=''):
     os.remove('tik')
 
     CIABuilder(content_files=cf, tik='tik_new', tmd='tmd_new', meta=meta, dev=0, out=out)
-    
+
     for i in cf + ['tmd_new', 'tik_new', 'cia_header.bin', 'cert.bin', 'meta.bin']:
         if os.path.isfile(i):
             os.remove(i)
@@ -142,7 +142,7 @@ def cia_retail2dev(path, out=''):
     name = os.path.splitext(os.path.basename(path))[0]
     if out == '':
         out = f'{name}_dev.cia'
-    
+
     cia = CIAReader(path, dev=0)
     cia.extract()
 
@@ -205,7 +205,7 @@ def cia_retail2dev(path, out=''):
     os.remove('tik')
 
     CIABuilder(content_files=cf, tik='tik_new', tmd='tmd_new', meta=meta, dev=1, out=out)
-    
+
     for i in cf + ['tmd_new', 'tik_new', 'cia_header.bin', 'cert.bin', 'meta.bin']:
         if os.path.isfile(i):
             os.remove(i)
@@ -258,7 +258,7 @@ def cci_dev2retail(path, out=''):
                     os.remove(j)
 
     CCIBuilder(cci_header='cci_header.bin', card_info='card_info.bin', mastering_info='mastering_info.bin', initialdata='', card_device_info='', ncchs=parts, cardbus_crypto='Secure0', regen_sig='retail', dev=0, gen_card_device_info=0, out=out)
-    
+
     for i in parts + ['cci_header.bin', 'card_info.bin', 'mastering_info.bin', 'initialdata.bin', 'card_device_info.bin']:
         if os.path.isfile(i):
             os.remove(i)
@@ -319,7 +319,7 @@ def cci_retail2dev(path, out=''):
                     os.remove(j)
 
     CCIBuilder(cci_header='cci_header.bin', card_info='card_info.bin', mastering_info='mastering_info.bin', initialdata='', card_device_info='', ncchs=parts, cardbus_crypto='fixed', regen_sig='dev', dev=1, gen_card_device_info=1, out=out)
-    
+
     for i in parts + ['cci_header.bin', 'card_info.bin', 'mastering_info.bin', 'initialdata.bin', 'card_device_info.bin']:
         if os.path.isfile(i):
             os.remove(i)
@@ -341,7 +341,7 @@ def ncch_extractall(path, dev=0):
                         exefs_code_compress = 1
 
             shutil.move(i, os.path.join(name, i))
-    
+
     os.chdir(name)
     # Extract ExeFS
     if os.path.isfile('exefs.bin'):
@@ -353,12 +353,12 @@ def ncch_extractall(path, dev=0):
         if exefs_code_compress:
             os.remove(os.path.join('exefs', '.code.bin'))
             shutil.move('code-decompressed.bin', os.path.join('exefs', '.code.bin'))
-    
+
     # Extract RomFS
     if os.path.isfile('romfs.bin'):
         romfs = RomFSReader('romfs.bin')
         romfs.extract()
-    
+
     os.chdir('..')
 
 def macos_clean(path):
@@ -385,14 +385,14 @@ def ncch_rebuildall(path, dev=0):
                     exefs_code_compress = 1
 
         ExeFSBuilder(exefs_dir='exefs/', code_compress=exefs_code_compress)
-    
+
     if os.path.isdir('romfs/'):
         if platform.system() == 'Darwin':
             macos_clean('romfs/')
         if os.path.isfile('romfs.bin'):
             os.remove('romfs.bin')
         RomFSBuilder(romfs_dir='romfs/')
-    
+
     ncch_header = 'ncch_header.bin'
     if os.path.isfile('exheader.bin'):
         exheader = 'exheader.bin'
@@ -445,14 +445,14 @@ def cci_rebuildall(path, dev=0):
     card_device_info = ''
     if os.path.isfile('card_device_info.bin'):
         card_device_info = 'card_device_info.bin'
-    
+
     for i in os.listdir('.'):
         if os.path.isdir(i):
             ncchs.append(f'{i}.ncch')
             if os.path.isfile(f'{i}.ncch'):
                 os.remove(f'{i}.ncch')
             ncch_rebuildall(i, dev)
-    
+
     CCIBuilder(cci_header='cci_header.bin', card_info='card_info.bin', mastering_info='mastering_info.bin', initialdata='initialdata.bin', card_device_info=card_device_info, ncchs=ncchs, dev=dev, out=out)
     if not os.path.isfile(f'../{out}'):
         shutil.move(out, f'../{out}')
@@ -525,7 +525,7 @@ def cci2cia(path, out='', cci_dev=0, cia_dev=0):
         n = NCCHReader(i, dev=cci_dev)
         n.extract()
         os.remove(i)
-        
+
         if i.startswith('content0'):
             with open('exheader.bin', 'r+b') as f:
                 f.seek(0xD)
@@ -558,7 +558,7 @@ def cci2cia(path, out='', cci_dev=0, cia_dev=0):
         for j in [ncch_header, exheader, logo, plain, exefs, romfs]:
             if j != '':
                 os.remove(j)
-    
+
     cf = []
     d = {
         'content0.game.ncch': '0000.00000000.ncch',
@@ -573,7 +573,7 @@ def cci2cia(path, out='', cci_dev=0, cia_dev=0):
     tikBuilder(titleID=hex(readle(cci.hdr.mediaID))[2:].zfill(16), title_ver=0, regen_sig=regen_sig, out='tik')
 
     CIABuilder(content_files=cf, tik='tik', tmd='tmd', meta=1, dev=cia_dev, out=out)
-    
+
     for i in ['cci_header.bin', 'card_info.bin', 'mastering_info.bin', 'initialdata.bin', 'card_device_info.bin', 'tmd', 'tik'] + cf:
         if os.path.exists(i):
             os.remove(i)
@@ -605,7 +605,7 @@ def cdn2cia(path, out='', title_ver='', cdn_dev=0, cia_dev=0):
             tik = i
         elif i.startswith('0'):
             content_files.append(i)
-    
+
     if len(tmds) == 1: # If only one tmd in CDN dir, use it
         tmd = tmds[0]
     else:
@@ -614,7 +614,7 @@ def cdn2cia(path, out='', title_ver='', cdn_dev=0, cia_dev=0):
             tmd = tmds[-1]
         else:
             tmd = f'tmd.{title_ver}'
-    
+
     if cia_dev == 0:
         regen_sig = 'retail'
     else:
@@ -623,7 +623,7 @@ def cdn2cia(path, out='', title_ver='', cdn_dev=0, cia_dev=0):
     t = TMDReader(tmd)
     if out == '':
         out = f'{name}.{t.hdr.title_ver}.cia'
-    
+
     cdn = CDNReader(content_files=content_files, tmd=tmd, tik=tik, dev=cdn_dev)
     cdn.extract()
     cf = [i for i in os.listdir('.') if i.endswith('.ncch') or i.endswith('.nds')]
@@ -659,12 +659,12 @@ def cia2cdn(path, out='', titlekey='', cia_dev=0):
     for i in ['cia_header.bin', 'cert.bin', 'meta.bin']:
         if os.path.isfile(i):
             os.remove(i)
-    
+
     tik = 'tik'
     tik_read = tikReader(tik)
     if not tik_read.verify()[0][1]: # Ticket has invalid sig
         tik = ''
-    
+
     cf = [i for i in os.listdir('.') if i.endswith('.ncch') or i.endswith('.nds')]
     CDNBuilder(content_files=cf, tik=tik, tmd='tmd', titlekey=titlekey, out=out)
 

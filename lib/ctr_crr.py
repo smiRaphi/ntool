@@ -3,7 +3,7 @@ from .keys import *
 
 class crrHdr(Structure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('magic', c_char * 4),
         ('reserved1', c_uint32),
@@ -21,13 +21,13 @@ class crrHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
 class crrBodyHdr(Structure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('sig', c_uint8 * 0x100),
         ('unique_id', c_uint32),
@@ -41,7 +41,7 @@ class crrBodyHdr(Structure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -59,18 +59,18 @@ class crrReader:
             for i in range(self.body_hdr.hash_count):
                 cro_hash_list.append(f.read(0x20))
             self.cro_hash_list = cro_hash_list
-    
+
         # If re-generating hash / want to verify CRO hashlist, place all CROs in the same directory as static.crr
         self.current_dir = os.path.dirname(os.path.abspath(self.file))
         self.cros = [i for i in os.listdir(self.current_dir) if i.endswith('.cro')]
-        
+
         if len(self.cros) != 0 and len(self.cros) != self.body_hdr.hash_count:
             raise Exception(f'Expected {self.body_hdr.hash_count} CROs but found {len(self.cros)}')
 
     def regen_hash(self): # Overwrites existing file
         if len(self.cros) == 0:
             raise Exception('Please place all CROs in the same directory as static.crr')
-        
+
         hashes = []
         for i in self.cros:
             with open(os.path.join(self.current_dir, i), 'rb') as g:
@@ -80,7 +80,7 @@ class crrReader:
         hashes = [hex(readbe(i))[2:].zfill(64) for i in hashes]
         hashes.sort()
         hashes = [hextobytes(i) for i in hashes]
-        
+
         with open(self.file, 'r+b') as f:
             f.seek(0x360)
             f.write(b''.join(hashes))
@@ -104,7 +104,7 @@ class crrReader:
                 hdr_sig = Crypto.sign_rsa_sha256(CTR.crr_mod[1], CTR.crr_priv[1], data)
                 f.seek(0x140)
                 f.write(hdr_sig)
-        
+
         print(f'{self.file} resigned')
 
     def verify(self):

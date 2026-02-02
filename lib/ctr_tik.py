@@ -3,7 +3,7 @@ from .keys import *
 
 class tikData(BigEndianStructure):
     _pack_ = 1
-    
+
     _fields_ = [
         ('issuer', c_char * 0x40),
         ('ecc_pubkey', c_uint8 * 0x3C),
@@ -30,7 +30,7 @@ class tikData(BigEndianStructure):
 
     def __new__(cls, buf):
         return cls.from_buffer_copy(buf)
-    
+
     def __init__(self, data):
         pass
 
@@ -67,7 +67,7 @@ class tikReader:
         normal_key = CTR.key_scrambler(CTR.KeyX0x3D[dev], CTR.KeyY0x3D[self.data.common_key_index][dev])
         cipher = AES.new(normal_key, AES.MODE_CBC, iv=bytes(self.data.titleID)+(b'\0'*8))
         self.titlekey = cipher.decrypt(bytes(self.data.enc_titlekey))
-    
+
     def verify(self, no_print=0): # 'no_print' parameter to facilitate CIAReader.verify()
         sig_check = []
         sig_check.append(('Ticket', Crypto.verify_rsa_sha256(CTR.tik_mod[self.dev], bytes(self.data) + self.content_index_hdr + self.content_index_offset + self.content_index, self.sig)))
@@ -76,7 +76,7 @@ class tikReader:
             print('Signatures:')
             for i in sig_check:
                 print(' > {0:15} {1:4}'.format(i[0] + ':', 'GOOD' if i[1] else 'FAIL'))
-        
+
         return sig_check
 
     def __str__(self):
@@ -84,7 +84,7 @@ class tikReader:
         for i in range(0, 0x80 * 8):
             if self.content_index[i // 8] & (1 << (i % 8)):
                 enabled_content_idxs.append(hex(i)[2:].zfill(4))
-        
+
         contents = ''
         for i in enabled_content_idxs:
             contents += f' > {i}\n'
@@ -123,7 +123,7 @@ class tikBuilder:
         if titleID != '':
            if not all([i in string.hexdigits for i in titleID]) or len(titleID) != 16:
                 raise Exception('Invalid TitleID')
-        
+
         if titlekey != '':
            if not all([i in string.hexdigits for i in titlekey]) or len(titlekey) != 32:
                 raise Exception('Invalid TitleKey')
@@ -158,7 +158,7 @@ class tikBuilder:
                 content_index_hdr = f.read(0x28)
                 content_index_offset = f.read(4)
                 content_index = f.read(0x80)
-        
+
         if tik == '' or regen_sig != '':
             data.issuer = b'Root-CA00000003-XS0000000c'
             if regen_sig == 'dev':
@@ -176,10 +176,10 @@ class tikBuilder:
 
         if title_ver != -1:
             data.title_ver = title_ver
-        
+
         if common_key_index != -1:
             data.common_key_index = common_key_index
-        
+
         if eshop_acc_id != '':
             eshop_acc_id_bytes = int32tobytes(int(eshop_acc_id, 16))
             data.eshop_acc_id = (c_uint8 * sizeof(data.eshop_acc_id))(*eshop_acc_id_bytes)
